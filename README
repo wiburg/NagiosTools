@@ -1,2 +1,48 @@
-This repository contains  my nagios-plugins. 
+This repository contains  my nagios-plugins.
+
+Plugins:
+========
+
+check_http.pl:
+--------------
+  This plugin is _no_ replacement of the default nagios check_http plugin.
+
+  It provides some functionality which the standard check_http doesn't have.
+  The standard check_http plugins does not allow to set warning or critical 
+  status depending on the page content. 
+  check_http can only return OK or Critical if a string (or regular expression) 
+  matches.
+
+  Using this plugin you can set multiple conditions for warning and/or critical 
+  status.
+  Example (combine regex and http codes):
+
+  ./check_http.pl -H host.domain.com -u /test.html \
+    -W '[Ww]arn' -W '[Mm]issing' -C '[Cc]rit' \
+    -c 500 -c 404
+
+  Capital options (-W and -C) indicate regex patterns which should match the 
+  page content. The lowercase options are reserved for the HTTP Codes 
+  (regex can be used too).
+
+  There still many open tasks like user authentication support, configurable 
+  redirect support.
+
+
+check_ndo.pl:
+-------------
+  check_ndo.pl is a perl plugin, which checks wether the ndo database was 
+  updated in a given time period.
+  Usage:
+
+     ./check_ndo.pl -H -P -d -u -p | -i instance_name | -h
+
+   Example:
+
+      ./check_ndo.pl -H localhost -d nagios_db \
+         -u nagios_user -p secret -t 60 -i my_instance
+
+
+
+
 For more information about nagios have a look at: http://nagios.org
