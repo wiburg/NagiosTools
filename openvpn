@@ -1,0 +1,18 @@
+#!/bin/bash
+# a simple check_mk local check,
+# which looks for established openvpn connections.
+# Requires the openvpn management interface
+#
+if STATE=$(echo status | /usr/bin/netcat localhost 8444)
+then
+   COUNT=0
+   COUNT=$(echo "$STATE" | sed -e  '1,/OpenVPN CLIENT LIST/d' -e '/ROUTING TABLE/,$d' | sed -e  '1,/Common Name/d'| wc -l)
+   if [ $COUNT -eq 0 ]
+   then
+       echo "0 openvpn connections=0 No VPN connections"
+   else
+       echo "1 openvpn connections=$COUNT $COUNT VPN connections established" 
+   fi
+else
+   echo 2 openvpn connections= No connection to openvpn management interface
+fi
