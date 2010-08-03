@@ -26,13 +26,13 @@ use Net::SNMP;
 use Getopt::Std;
 
 $script    = "check_ups_apc.pl";
-$script_version = "1.0";
+$script_version = "1.1";
 
 $metric = 1;
 
 $ipaddress = "192.168.1.1"; 	# default IP address, if none supplied
 $version = "1";			# SNMP version
-$timeout = 2;				# SNMP query timeout
+$timeout = 2;			# SNMP query timeout
 # $warning = 100;			
 # $critical = 150;
 $status = 0;

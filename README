@@ -1,4 +1,19 @@
-This repository contains  my nagios-plugins.
+This repository contains  my nagios-plugins and other nagios related tools.
+
+Tools:
+======
+
+nagios-log.pl:
+--------------
+  A script, which parses the nagios log file output and fixes the time format 
+  to a human readable string. Additionally it can colorize the output.
+  Example:
+  tail -f /usr/local/nagios/var/nagios.log | ./nagios-log.pl 
+
+  Options:
+    -a (prints only alerts)
+    -n (don't colorize output)
+
 
 Plugins:
 ========
@@ -42,6 +57,17 @@ check_ndo.pl:
       ./check_ndo.pl -H localhost -d nagios_db \
          -u nagios_user -p secret -t 60 -i my_instance
 
+
+check_ups_apc.pl:
+----------------_
+
+  checks the status (capacity, load, temperature) of an APC ups.
+  The POWERNET-MIB is used for monitoring.
+
+  The plugin was developed by Altinity Limited:
+   Copyright (C) 2004 Altinity Limited
+   E: info@altinity.com    W: http://www.altinity.com/
+   Modified by pierre.gremaud@bluewin.ch
 
 
 

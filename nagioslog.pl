@@ -3,7 +3,7 @@
 # Version : 0.1
 # Date :  Mar 13 2010
 # Author  : wiburg ( owittenburg at googlemail.com)
-# Licence : GPL - http://www.fsf.org/licenses/gpl.txt
+# Licence : GPL 2 - http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 #################################################################
 # script is based on a public script which fixes the nagios time format.
 # Unfortunately, I can't find the original sources.
