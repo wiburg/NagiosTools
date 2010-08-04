@@ -21,41 +21,47 @@
 # Changelog
 # * Mon Aug 02 2010 owittenburg@googlemail.com
 # - added battery capacity to performance data
+# * Wed Aug 04 2010 owittenburg@googlemail.com
+# - make warning/critical thresholds configurable
 
 use Net::SNMP;
 use Getopt::Std;
 
-$script    = "check_ups_apc.pl";
-$script_version = "1.1";
+my $script    = "check_ups_apc.pl";
+my $script_version = "1.2";
 
-$metric = 1;
+my $metric = 1;
 
-$ipaddress = "192.168.1.1"; 	# default IP address, if none supplied
-$version = "1";			# SNMP version
-$timeout = 2;			# SNMP query timeout
-# $warning = 100;			
-# $critical = 150;
-$status = 0;
-$returnstring = "";
-$perfdata = "";
+my $ipaddress = "192.168.1.1"; 	# default IP address, if none supplied
+my $version = "1";			# Default SNMP version
+my $timeout = 2;			# SNMP query timeout
+my $status = 0;
+my $returnstring = "";
+my $perfdata = "";
 
-$community = "public"; 		# Default community string
+my $community = "public"; 		# Default community string
 
-$oid_sysDescr = ".1.3.6.1.2.1.1.1.0";
-$oid_upstype = ".1.3.6.1.4.1.318.1.1.1.1.1.1.0";
-$oid_battery_capacity = ".1.3.6.1.4.1.318.1.1.1.2.2.1.0";
-$oid_output_status = ".1.3.6.1.4.1.318.1.1.1.4.1.1.0";
-$oid_output_current = ".1.3.6.1.4.1.318.1.1.1.4.2.4.0";
-$oid_output_load = ".1.3.6.1.4.1.318.1.1.1.4.2.3.0";
-$oid_temperature = ".1.3.6.1.4.1.318.1.1.1.2.2.2.0";
+my $oid_sysDescr = ".1.3.6.1.2.1.1.1.0";
+my $oid_upstype = ".1.3.6.1.4.1.318.1.1.1.1.1.1.0";
+my $oid_battery_capacity = ".1.3.6.1.4.1.318.1.1.1.2.2.1.0";
+my $oid_output_status = ".1.3.6.1.4.1.318.1.1.1.4.1.1.0";
+my $oid_output_current = ".1.3.6.1.4.1.318.1.1.1.4.2.4.0";
+my $oid_output_load = ".1.3.6.1.4.1.318.1.1.1.4.2.3.0";
+my $oid_temperature = ".1.3.6.1.4.1.318.1.1.1.2.2.2.0";
 
-$upstype = "";
-$battery_capacity = 0;
-$output_status = 0;
-$output_current =0;
-$output_load = 0;
-$temperature = 0;
-
+my $upstype = "";
+my $battery_capacity = 0;
+my $output_status = 0;
+my $output_current =0;
+my $output_load = 0;
+my $temperature = 0;
+# Default thresholds:
+my $battery_critical = 25;
+my $battery_warning = 50;
+my $output_load_critical = 90;
+my $output_load_warning = 80;
+my $temperature_critical = 32;
+my $temperature_warning = 28;
 
 # Do we have enough information?
 if (@ARGV < 1) {
@@ -63,7 +69,7 @@ if (@ARGV < 1) {
      usage();
 }
 
-getopts("h:H:C:w:c:");
+getopts("h:H:C:w:c:v:");
 if ($opt_h){
     usage();
     exit(0);
@@ -75,12 +81,39 @@ else {
     print "No hostname specified\n";
     usage();
 }
+if ($opt_v) {
+    # the snmp version
+    $version = $opt_v;
+}
+if ($opt_w) {
+    # Get rid of % sign
+    $opt_w =~ s/\%//g;
+    @warnings=split(/,/ , $opt_w);
+    if ($#warnings != 2) {
+        print "3 warning values needed\n"
+        usage ();
+        exit (3);
+    }
+    $battery_warning = $warnings[0];
+    $output_load_warning = $warnings[1];
+    $temperature_warning = $warnings[2];
+}
+if ($opt_c) {
+    # Get rid of % sign
+    $opt_c =~ s/\%//g;
+    @criticals=split(/,/ , $opt_c);
+    if ($#criticals != 2) {
+        print "3 critical values needed\n"
+        usage ();
+        exit (3);
+    }
+    $battery_critical = $criticals[0];
+    $output_load_critical = $criticals[1];
+    $temperature_critical = $criticals[2];
+}
 if ($opt_C){
     $community = $opt_C;
 }
-else {
-}
-
 
 
 # Create the SNMP session
@@ -233,11 +266,11 @@ sub main {
         $returnstring = "$upstype - ";
     }
 
-    if ($battery_capacity < 25) {
+    if ($battery_capacity < $battery_critical) {
         $returnstring = $returnstring . "BATTERY CAPACITY $battery_capacity% - ";
         $status = 2;
     }
-    elsif ($battery_capacity < 50) {
+    elsif ($battery_capacity < $battery_warning) {
         $returnstring = $returnstring . "BATTERY CAPACITY $battery_capacity% - ";
         $status = 1 if ( $status != 2 );
     }
@@ -326,10 +359,24 @@ $script v$script_version
 
 Monitors APC SmartUPS via AP9617 SNMP management card.
 
-Usage: $script -H <hostname> -C <community> [...]
+Usage: $script -H <hostname> -C <community> [ -w <warning thresholds> ] [ -c <critical thresholds> ]
 
 Options: -H 	Hostname or IP address
          -C 	Community (default is public)
+         -w     warning thresholds (battery_capacity, output_load, temperature)
+         -c     critical thresholds (battery_capacity, output_load, temperature)
+
+Threshold example:
+
+ -w 50,80,28 -c 25,90,32
+
+    warning at 50% remaining battery capacity,
+            or 80 % output load
+            or 28 degree celsius
+
+    critical at 25% remaining battery capacity,
+            or 90 % output load
+            or 32 degree celsius
 	 
 -----------------------------------------------------------------	 
 Copyright 2004 Altinity Limited	 
