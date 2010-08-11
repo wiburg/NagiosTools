@@ -90,7 +90,7 @@ if ($opt_w) {
     $opt_w =~ s/\%//g;
     @warnings=split(/,/ , $opt_w);
     if ($#warnings != 2) {
-        print "3 warning values needed\n"
+        print "3 warning values needed\n";
         usage ();
         exit (3);
     }
@@ -103,7 +103,7 @@ if ($opt_c) {
     $opt_c =~ s/\%//g;
     @criticals=split(/,/ , $opt_c);
     if ($#criticals != 2) {
-        print "3 critical values needed\n"
+        print "3 critical values needed\n";
         usage ();
         exit (3);
     }
@@ -307,12 +307,12 @@ sub main {
     }
 
     $perfdata = $perfdata . "'capacity'=$battery_capacity ";
-    if ($output_load > 90) {
+    if ($output_load > $output_load_critical) {
         $returnstring = $returnstring . "OUTPUT LOAD $output_load% - ";
         $perfdata = $perfdata . "'load'=$output_load ";
         $status = 2;
     }
-    elsif ($output_load > 80) {
+    elsif ($output_load > $output_load_warning) {
         $returnstring = $returnstring . "OUTPUT LOAD $output_load% - ";
         $perfdata = $perfdata . "'load'=$output_load ";
         $status = 1 if ( $status != 2 );
