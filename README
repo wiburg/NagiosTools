@@ -69,6 +69,8 @@ check_ups_apc.pl:
    E: info@altinity.com    W: http://www.altinity.com/
    Modified by pierre.gremaud@bluewin.ch
 
+  check_ups_apc.php is the corresponding pnp4nagios template (tested with pnp4nagios0.6.2).
+
 
 
 For more information about nagios have a look at: http://nagios.org
