@@ -29,8 +29,6 @@ use strict;
 use LWP::UserAgent;
 use Getopt::Long;
 use Time::HiRes qw( gettimeofday );
-use lib "/usr/local/nagios/libexec"  ;
-use utils qw(&usage %ERRORS);
 
 # variables/lists
 my $cexpr;
@@ -44,6 +42,7 @@ my @o_criticalHttpCodes;
 my @o_criticalExpressions;
 my @o_warningHttpCodes;
 my @o_warningExpressions;
+my $proxy_url;
 my $o_help;
 
 
@@ -61,25 +60,27 @@ expression which matches the http body.
 -H <Hostname>
 -u <uri> (default: /)
 -p <port> (default: 80)
+-P, --proxy <proxy url>
+  example: --proxy="http://172.16.1.252:8080"
 -s, --ssl 
-	connection via ssl (default off)
+  connection via ssl (default off)
 -w <warning httpresponsecode>
-	state=warning, if the specified http code (404, 303, ...) is returned
+  state=warning, if the specified http code (404, 303, ...) is returned
 -c <critical httpresponsecode>
-	state=critical, if the specified http code (404, 303, ...) is returned
+  state=critical, if the specified http code (404, 303, ...) is returned
 -W <warning content regex> 
-	if regex matches against page content -> state = warning
+  if regex matches against page content -> state = warning
 -C <critical content regex>
-	if regex matches against page content -> state = critical
+  if regex matches against page content -> state = critical
 -h, --help
-	prints this help message
+  prints this help message
 
 The -w, -c, -W and -C options can be specified multiple times.
 
 If no -w, -c, -W or -C option is specified the following rules apply:
-	OK:  		HTTP Response Code 2xx
-	WARNING: 	HTTP Response Code 3xx
-	CRITICAL: 	HTTP Response Code 4xx or 5xx
+  OK:           HTTP Response Code 2xx
+  WARNING:      HTTP Response Code 3xx
+  CRITICAL:     HTTP Response Code 4xx or 5xx
 But without -w, -c, -W and -C option you better use the standard check_http plugin.
 EOT
 }
@@ -95,12 +96,13 @@ GetOptions(
   'W=s'  => \@o_warningExpressions, 'warningExpression=s' => \@o_warningExpressions,
   'c=s'  => \@o_criticalHttpCodes, 'criticalHttpCode=s' => \@o_criticalHttpCodes,
   'C=s'	 => \@o_criticalExpressions, 'criticalExpression=s' => \@o_criticalExpressions,
+  'P=s'  => \$proxy_url, 'proxy=s' => \$proxy_url,
   'h'    => \$o_help,      'help'  => \$o_help
 );
 if ($o_help) { help(); exit 0};
 
 # Follwing Parameters have to be set by the user, otherwise exit ...:
-if (!$o_host) { usage("Host not specified\n") };
+if (!$o_host) { print "Host not specified\n"; exit 3; };
 
 # Setting some default values:
 # ....
@@ -109,10 +111,14 @@ if (!$o_port and $o_ssl == 1 ) { $o_port = 443 }
 if (!$o_url ) { $o_url = "/" }
 if ($o_ssl) { $protocol = "https" }
 
-
 my $start = gettimeofday();
 my $ua = LWP::UserAgent->new();
 $ua->agent('Nagios chech_http.pl/0.1');
+
+if ($proxy_url) {
+  $ua->proxy(['http','https'], "$proxy_url");
+}
+
 $ua->timeout(10); # 10 seconds timeout FIXME: configurable
 $ua->max_redirect(7); # 7 is the default
 
@@ -123,31 +129,25 @@ my $response = $ua->request($request);
 my $code = $response->code();
 my $content = $response->content();
 
-
 my $end = gettimeofday();
 my $delta = ($end - $start);
 # for performance measurements (sometimes later):
 # print "$delta\n";
 
-#i Critical?
+# Critical?
 if (@o_criticalHttpCodes or @o_criticalExpressions) {
-
   # Test wether a (user-defined) critical HTTP-Code is returned
   foreach $ccode (@o_criticalHttpCodes) {
     if ($code =~ m/$ccode/) {
-      # print $response->status_line, "\n";
-      print "Status: Critical. Matching critical HTTP Code $code\n";
-      my $state = "CRITICAL";
-      exit $ERRORS{$state};
+      print "Status: " . $response->status_line . "\n";
+      exit (2);
     }
   }
-
   # Test wether a (user-defined) critical string can be found in the body
   foreach $cexpr (@o_criticalExpressions) {
     if ($content =~m/$cexpr/) {
       print "Status: Critical. Matching critical regular expression\n";
-      my $state = "CRITICAL";
-      exit $ERRORS{$state};
+      exit (2);
     }
   }
 } 
@@ -155,29 +155,24 @@ else {
   # no critical condition was supplied by user
   if ($code >= 400) {
     print "Status: Critical (" . $response->status_line . ")\n";
-    my $state = "CRITICAL";
-    exit $ERRORS{$state};
+    exit 2;
   }
 }
-
 
 # Warning?
 if (@o_warningHttpCodes or @o_warningExpressions) {
   # Test wether a (user-defined) warning HTTP-Code is returned
   foreach $ccode (@o_warningHttpCodes) {
     if ($code =~ m/$ccode/) {
-      # print $response->status_line, "\n";
-      print "Status: Warning.  HTTP Code $code\n";
-      my $state = "WARNING";
-      exit $ERRORS{$state};
+      print "Status: " . $response->status_line . "\n"; 
+      exit 1;
     }
   }
   # Test wether a (user-defined) warning string can be found in the body
   foreach $cexpr (@o_warningExpressions) {
     if ($content =~m/$cexpr/) {
       print "Status: Warning. Matching warning regular expression\n";
-      my $state = "WARNING";
-      exit $ERRORS{$state};
+      exit 1;
     }
   }
 }
@@ -185,17 +180,11 @@ else {
   # no critical condition was supplied by user
   if ($code >= 300) {
     print "Status: WARNING (" . $response->status_line . ")\n";
-    my $state = "WARNING";
-    exit $ERRORS{$state};
+    exit 1;
   }
 }
 
-
-if ($response->is_success) {
-  print "Status: OK\n";
-}
-else {
-  print $response->status_line, "\n";
-}
+# ?
+print "Status: " . $response->status_line . "\n";
 
 
