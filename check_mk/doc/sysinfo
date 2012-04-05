@@ -1,0 +1,14 @@
+title: Check system information
+agents: snmp
+author: Oliver Wittenburg <oliver.wittenburg@comsoft.aero>
+license: GPL
+distribution: cnms
+description:
+ This check gathers different types of system information:
+ - General information from MIB-2
+ - Vendor specific information (e.g. CISCO or HP Proliant device information)
+
+ This check is purely informational.
+
+
+

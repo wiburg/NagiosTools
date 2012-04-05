@@ -1,0 +1,78 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# 
+# simple checks which gathers only system information:
+# General: sysUptimee, sysLocation, sysContact, sysName
+# CISCO: serial number, ios version
+# HP proliant server: serial number, product name
+# to be continued ...
+
+
+def inventory_sysinfo(checkname, info):
+    inventory = []
+    if info[0] and len(info[0][0][0]) > 0:
+        inventory.append( ("General", None) )
+    if info[1] and len(info[1][0][0]) > 0:
+        inventory.append( ("Cisco", None) )
+    if info[2] and len(info[2][0][0]) > 0:
+        inventory.append( ("HP Proliant", None) )
+    return inventory
+
+def check_sysinfo(item, params, info):
+    if item == "General":
+        if info[0] and info[0][0][0] != "":
+            general = info[0]
+            for uptime, contact, hostname, location in general:
+                if len(uptime) == 0:
+                    uptime = "unknown"
+                if len(contact) == 0:
+                    contact = "unknown"
+                if len(hostname) == 0:
+                    hostname = "unknown"
+                if len(location) == 0:
+                    location = "unknown"
+                out = "Hostname: " + hostname +  ", location: " +  location + ", contact: " + contact + ", Uptime: " + uptime
+                return (0, out)
+        else:
+            return (3, "UNKNOWN - no snmp data")
+    if item == "Cisco":
+        if info[1][0][0] != "":
+            serial = info[1][0][0]
+            rom = info[1][0][1]
+            out = "Serial number: " + serial + ", ROM Version: " + rom
+            return (0, out)
+        else:
+            return (3, "UNKNOWN - no snmp data")
+    if item == "HP Proliant":
+        if info[2][0][0] != "":
+            serial = info[2][0][0]
+            product = info[2][0][1]
+            out = "Serial number: " + serial + ", Product name: " + product
+            return (0, out)
+        else:
+            return (3, "UNKNOWN - no snmp data")
+
+    return (3, "UNKNOWN - item not found in snmp data")
+
+check_info['sysinfo'] = (check_sysinfo, "System information", 0,  inventory_sysinfo)
+snmp_info['sysinfo'] = [ 
+    # General:
+    ( ".1.3.6.1.2.1.1", [
+        "3", # sysUpTime
+        "4", # sysContact
+        "5", # sysName
+        "6", # sysLocation
+    ] ),
+    # Cisco:
+    ( ".1.3.6.1.4.1.9.3.6", [
+        "3.0", # cisco serial number
+        "5.0", # rom version
+    ] ), 
+    # HP:
+    ( ".1.3.6.1.4.1.232.2.2", [
+        "2.1.0", # serial num
+        "4.2.0", # product name
+    ] ),
+]
+snmp_scan_functions['sysinfo'] = \
+    lambda oid: "cisco" in oid(".1.3.6.1.2.1.1.1.0").lower()
