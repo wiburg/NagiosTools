@@ -1,0 +1,50 @@
+#!/usr/bin/python
+
+terminalLinkQualityStates = {
+    '1' : 'good signal level',
+    '2' : 'sufficient signal level',
+    '3' : 'insufficient signal level, link not available',
+    '10' : 'unknown, no signal level data available'
+}
+
+def inventory_liberator_v320(checktype, info):
+    inventory = []
+
+    if info[0] and info[0][0]:
+        inventory.append( ("", None) )
+
+    return inventory
+    
+
+def check_liberator_v320(item, params, info):
+    # default state = unknown:
+    state = 3
+    output = "no information received"
+    perfdata = []
+    if info[0] and info[0][0]:
+        terminalLinkQuality = info[0][0]
+        terminalReceivePower = info[0][1]
+        terminalTemperature = info[0][2]
+        output = "Terminal link quality: " + terminalLinkQualityStates[terminalLinkQuality] 
+        if terminalLinkQuality == '1':
+            state = 0
+        elif terminalLinkQuality == '2':
+            state  = 1
+        elif terminalLinkQuality == '3':
+            state  = 2
+        else:
+            state  = 3
+            
+    return (state, output, perfdata)       
+    
+check_info["liberator_v320"] = {
+    "check_function"      : check_liberator_v320,
+    "inventory_function"  : inventory_liberator_v320,
+    "service_description" : "Liberator v320  Status",
+    "has_perfdata"        : True,
+    "snmp_info"           : ( ".1.3.6.1.4.1.39003.2", [ 
+                                "1",  # terminalLinkQuality
+                                "10", # terminalReceivePower (dBm)
+                                "11", # terminalTemperature (Celsius)
+                             ] )
+}
