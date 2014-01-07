@@ -104,7 +104,7 @@ while (<>)
       print RESET;
     }
     elsif ( $remainder =~ /HOST ALERT:/ ) {
-      if ( $remainder =~ /.+;OK;.+;.+;.*/ ) {
+      if ( $remainder =~ /.+;UP;.+;.+;.*/ ) {
         print  GREEN BOLD "$remainder";
       }
       elsif ( $remainder =~ /.+;DOWN;.+;.+;.*/ ) {
